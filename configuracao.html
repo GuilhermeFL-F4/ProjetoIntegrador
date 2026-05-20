@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Configuração do Chatbot</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚙️</text></svg>">
+    <style>
+        /* Fundo e tipografia geral */
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #1e293b; /* Azul escuro elegante */
+            color: #334155; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            padding: 20px;
+        }
+
+        /* Cartão principal */
+        .card {
+            background-color: #ffffff;
+            padding: 30px 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 450px;
+        }
+
+        /* Cabeçalho do Cartão */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 15px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.4rem;
+            color: #0f172a;
+        }
+
+        .config-link {
+            background-color: #eff6ff;
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 0.9rem;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+        .config-link:hover { background-color: #dbeafe; }
+
+        /* Formulário */
+        .config-form { display: flex; flex-direction: column; gap: 15px; }
+        
+        .config-form label { 
+            font-weight: 600; 
+            font-size: 0.9rem; 
+            margin-bottom: -5px; 
+            color: #475569;
+        }
+
+        .config-form input[type="text"], 
+        .config-form select, 
+        .config-form textarea,
+        .config-form input[type="file"] { 
+            padding: 10px 12px; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 8px; 
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .config-form input[type="text"]:focus, 
+        .config-form select:focus, 
+        .config-form textarea:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+
+        .config-form input[type="file"] {
+            background-color: #f8fafc;
+            cursor: pointer;
+        }
+
+        /* Botões */
+        .btn-primary { 
+            padding: 12px; 
+            background-color: #2563eb; 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer; 
+            transition: background 0.3s; 
+            margin-top: 10px;
+        }
+        .btn-primary:hover { background-color: #1d4ed8; }
+
+        .btn-danger { 
+            padding: 12px; 
+            background-color: #ef4444; 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer; 
+            transition: background 0.3s; 
+        }
+        .btn-danger:hover { background-color: #b91c1c; }
+
+        .status-message { 
+            margin-top: 15px; 
+            padding: 10px; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            text-align: center;
+            font-size: 0.9rem;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <div class="header">
+            <h1>⚙️ Configurar Chatbot</h1>
+            <a href="index.html" class="config-link">🤖 Ir p/ Chat</a> 
+        </div>
+        
+        <form class="config-form" id="configForm">
+            <label for="nome">Nome do Chatbot:</label>
+            <input type="text" id="nome" name="nome" placeholder="Ex: Assistente de Vendas" required>
+
+            <label for="tom">Tom de Resposta:</label>
+            <select id="tom" name="tom" required>
+                <option value="tecnico">Técnico e Profissional</option>
+                <option value="descontraido">Descontraído e Amigável</option>
+            </select>
+
+            <label for="instrucoes">Instruções (Comportamento):</label>
+            <textarea id="instrucoes" name="instrucoes" rows="4" placeholder="Como o chatbot deve se comportar?" required></textarea>
+
+            <label for="documento">Base de Conhecimento (PDF/TXT):</label>
+            <input type="file" id="documento" name="documento" accept=".pdf,.txt">
+
+            <button type="submit" class="btn-primary">💾 Salvar Configurações</button>
+            <button type="button" id="btnApagarBanco" class="btn-danger">🗑️ Apagar Arquivos da IA</button>
+        </form>
+        
+        <p id="statusMessage" class="status-message"></p>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+
+        // === CREDENCIAIS ===
+        const supabase = createClient('https://barlkvsfitdfaldzvxuh.supabase.co', 'sb_publishable_VCNa4g3IP6ggAiZIT8Z8oA_bADXX6s2');
+        const N8N_CONFIG_WEBHOOK_URL = "https://izysoft-n8n-n8n.3amk2h.easypanel.host/webhook/rag"; 
+
+        const statusMsg = document.getElementById('statusMessage');
+
+        // 1. APAGAR BANCO
+        document.getElementById('btnApagarBanco').addEventListener('click', async () => {
+            const confirmacao = confirm("⚠️ ATENÇÃO: Isso vai apagar todos os documentos da IA. Tem certeza?");
+            if (!confirmacao) return;
+
+            statusMsg.textContent = '⏳ Apagando banco de dados...';
+            statusMsg.style.color = '#eab308'; 
+
+            try {
+                const { error } = await supabase.rpc('limpar_documentos');
+                if (error) throw error;
+                
+                statusMsg.textContent = '✅ Banco de dados apagado com sucesso!';
+                statusMsg.style.color = '#16a34a'; 
+            } catch (error) {
+                console.error('Erro ao limpar banco:', error);
+                statusMsg.textContent = `❌ Erro: ${error.message}`;
+                statusMsg.style.color = '#dc2626'; 
+            }
+        });
+
+        // 2. SALVAR E ENVIAR N8N
+        function readFileAsBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result); 
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        document.getElementById('configForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            statusMsg.textContent = 'Processando...';
+            statusMsg.style.color = '#2563eb';
+            
+            const nome = document.getElementById('nome').value;
+            const tom = document.getElementById('tom').value;
+            const instrucoes = document.getElementById('instrucoes').value;
+            const fileInput = document.getElementById('documento');
+            const file = fileInput.files[0];
+            
+            const configData = { nome, tom, instrucoes };
+            localStorage.setItem('chatbotConfig', JSON.stringify(configData));
+            
+            let fileUploadSuccess = true;
+
+            if (file) {
+                statusMsg.textContent = '⏳ Enviando arquivo para o n8n...';
+                
+                try {
+                    const fileContentBase64ComCabecalho = await readFileAsBase64(file);
+                    const partes = fileContentBase64ComCabecalho.split(',');
+                    const fileContentBase64 = partes.length > 1 ? partes[1] : fileContentBase64ComCabecalho;
+                    
+                    const payload = {
+                        ...configData, 
+                        file: {
+                            name: file.name,
+                            type: file.type,
+                            data: fileContentBase64
+                        }
+                    };
+                    
+                    const response = await fetch(N8N_CONFIG_WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Status ${response.status}`);
+                    }
+                    fileInput.value = ''; 
+
+                } catch (error) {
+                    fileUploadSuccess = false;
+                    console.error('Erro:', error);
+                    statusMsg.textContent = `⚠️ Erro ao enviar o arquivo. Tente novamente.`;
+                    statusMsg.style.color = '#dc2626';
+                }
+            }
+
+            if (fileUploadSuccess) {
+                statusMsg.textContent = file ? 
+                    '✅ Configurações e arquivo salvos com sucesso!' : 
+                    '✅ Configurações salvas com sucesso!';
+                statusMsg.style.color = '#16a34a';
+            }
+        });
+
+        // 3. CARREGAR CONFIGURAÇÕES
+        window.onload = function() {
+            const savedConfig = localStorage.getItem('chatbotConfig');
+            if (savedConfig) {
+                const config = JSON.parse(savedConfig);
+                document.getElementById('nome').value = config.nome;
+                document.getElementById('tom').value = config.tom;
+                document.getElementById('instrucoes').value = config.instrucoes;
+            }
+        };
+    </script>
+</body>
+</html>
