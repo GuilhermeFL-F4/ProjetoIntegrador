@@ -167,25 +167,41 @@
         // === CREDENCIAIS ===
         const supabase = createClient('https://barlkvsfitdfaldzvxuh.supabase.co', 'sb_publishable_VCNa4g3IP6ggAiZIT8Z8oA_bADXX6s2');
         const N8N_CONFIG_WEBHOOK_URL = "https://izysoft-n8n-n8n.3amk2h.easypanel.host/webhook/rag"; 
+        const N8N_CLEAR_WEBHOOK_URL = "https://izysoft-n8n-n8n.3amk2h.easypanel.host/webhook/apag"; 
 
         const statusMsg = document.getElementById('statusMessage');
 
         // 1. APAGAR BANCO
-        document.getElementById('btnApagarBanco').addEventListener('click', async () => {
+       document.getElementById('btnApagarBanco').addEventListener('click', async () => {
             const confirmacao = confirm("⚠️ ATENÇÃO: Isso vai apagar todos os documentos da IA. Tem certeza?");
             if (!confirmacao) return;
 
-            statusMsg.textContent = '⏳ Apagando banco de dados...';
+            statusMsg.textContent = '⏳ Apagando banco e notificando n8n...';
             statusMsg.style.color = '#eab308'; 
 
             try {
+                
                 const { error } = await supabase.rpc('limpar_documentos');
                 if (error) throw error;
                 
-                statusMsg.textContent = '✅ Banco de dados apagado com sucesso!';
+                
+                const n8nResponse = await fetch(N8N_CLEAR_WEBHOOK_URL, {
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        acao: 'limpar_memoria', 
+                        status: 'sucesso' 
+                    })
+                });
+
+                if (!n8nResponse.ok) {
+                    throw new Error(`Banco limpo, mas falha ao ativar webhook do n8n (Status ${n8nResponse.status})`);
+                }
+                
+                statusMsg.textContent = '✅ Banco apagado e n8n notificado com sucesso!';
                 statusMsg.style.color = '#16a34a'; 
             } catch (error) {
-                console.error('Erro ao limpar banco:', error);
+                console.error('Erro ao processar limpeza:', error);
                 statusMsg.textContent = `❌ Erro: ${error.message}`;
                 statusMsg.style.color = '#dc2626'; 
             }
